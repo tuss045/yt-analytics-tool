@@ -1,244 +1,34 @@
-
-Claude finished the response
-
-import streamlit as st from googleapiclient.discovery import build import pandas as pd import re from io import BytesIO st.set_page_config( page_title="YouTube Analytics Tool", page_icon="🎬", layout="centered" ) st.title("🎬 YouTube Channel Analytics") st.caption("Channel
-
-pasted
-
-1:01 PM
-Kya karna hai is code ke saath? Kuch upgrade karna hai, bug fix karna hai, ya isse HTML/JS app mein convert karna hai (like your YouTube Shorts tool on GitHub Pages)?
-
-make it upgrade where i get a option of  short videos, long videos and community post
-
-1:05 PM
-Let me read the frontend design skill first, then upgrade the app.
-
-
-Reading frontend design skill
-Reading frontend design skill
-Now let me build the upgraded Streamlit app:
-
-
-Created a file, read a file
-Created a file, read a file
-Upgrade done! Yeh changes kiye hain:
-
-Naya feature — Content Type Radio Filter:
-
-🎬 Long Videos → sirf 60 sec se zyada wale videos
-⚡ Short Videos (Shorts) → sirf 60 sec ya kam wale videos
-📢 Community Posts → channel ke bulletin/community posts
-Download filenames bhi smart hain:
-
-ChannelName_shorts.csv
-ChannelName_long_videos.xlsx
-ChannelName_community_posts.csv
-Ek important note — Community Posts:
-YouTube Data API v3 ka ek limitation hai — community posts ke likes aur comments count expose nahi hota API se. Woh columns blank rahenge. Agar Abhishek ko yeh data chahiye toh browser automation (Selenium/Playwright) ya manual export hi option hai. Maine app mein iska info message bhi daal diya hai taaki confusion na ho.
-
-
-App
-PY 
-i took it from public place remove and unawanted person name from it
-
-1:08 PM
-
-Viewed a file, edited a file, read a file
-Viewed a file, edited a file, read a file
-Done! "Developed by Abhishek Singh" wali line hata di — ab file clean hai, koi bhi naam nahi hai.
-
-
-App
-PY 
-how i connect steam with streamlit for public
-
-1:09 PM
-Streamlit ko publicly deploy karne ke liye Streamlit Community Cloud sabse easy aur free option hai. Yahan step-by-step hai:
-
-🚀 Streamlit Community Cloud pe Deploy karo (Free)
-Step 1 — GitHub pe code daalo
-GitHub pe ek new repository banao (e.g. yt-analytics-tool)
-app.py upload karo
-Ek requirements.txt file bhi banao with:
-streamlit
-google-api-python-client
-pandas
-openpyxl
-Step 2 — Streamlit Cloud pe login karo
-Jao share.streamlit.io
-GitHub account se login karo
-Step 3 — App deploy karo
-"New app" click karo
-Apni GitHub repo select karo
-Branch: main, File: app.py
-Deploy! click karo
-Tumhe ek public URL milega jaise:
-https://tuss045-yt-analytics-tool.streamlit.app
-
-Step 4 — API Key secure karo (Important!)
-API key code mein mat daalo. Streamlit Cloud ka Secrets feature use karo:
-
-App dashboard pe jao → Settings → Secrets
-Yahan daalo:
-toml
-YOUTUBE_API_KEY = "AIzaSy..."
-Save karo — tumhara code already st.secrets.get("YOUTUBE_API_KEY") use kar raha hai, toh kuch aur change nahi karna
-✅ Summary
-Cheez	Details
-Cost	Free
-URL	Public shareable link
-API Key	Secrets mein safe
-Update	GitHub push karo, auto re-deploy
-Bas itna hi — GitHub repo ready hai tumhara? Koi step mein help chahiye?
-
-give me clear process
-
-1:11 PM
-
-
-Bas yahi 4 steps hain. Ek cheez dhyan mein rakhna — Step 1 mein requirements.txt zaroori hai, warna Streamlit Cloud dependencies install nahi kar payega aur deploy fail ho jayega.
-
-Koi step mein atak gaye toh bata dena!
-
-ModuleNotFoundError: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
-Traceback:
-
-File "/mount/src/yt-analytics-tool/app.py", line 2, in <module>
-    from googleapiclient.discovery import build
-1:15 PM
-requirements.txt mein package name galat hai. Yeh fix karo:
-
-
-
-requirements.txt mein yeh 6 lines daalo aur commit karo — bas itna hi fix hai. Redeploy ke baad error chali jayegi.
-
-1782200792309_image.png
-1:16 PM
-Dikh raha hai — repo mein requirements.txt file hi nahi hai! Sirf app.py aur README.md hai. Isliye error aa rahi hai.
-
-Yeh karo:
-
-Repo mein jao → "Add file" → "Create new file"
-File name mein likho: requirements.txt
-Content mein yeh daalo:
-streamlit
-google-api-python-client
-google-auth
-google-auth-httplib2
-google-auth-oauthlib
-pandas
-openpyxl
-"Commit changes" click karo
-Bas — Streamlit Cloud automatically redeploy karega aur error fix ho jayegi.
-
-add  Date Range , multi channel  ids,  
-in output give date , channel name ,  link,  views , like , comments 
-remove -Kaunsa data chahiye?
-Put - Tell me the Data you Want  From Me ( Tushar AI ) 
-make the graphic and more attractive for the user and style and creative  shows
-
-1:23 PM
-Let me read the skill first, then build the upgraded app.
-
-
-Reading frontend design skill
-Reading frontend design skill
-Now building the fully upgraded app:
-
-
-Ran a command, created a file, read a file
-Ran a command, created a file, read a file
-Full upgrade ready! Yeh sab changes hain:
-
-New features:
-
-Multi-channel support — ek per line multiple Channel IDs daalo, sab ek saath fetch hoga
-Date range filter — "From" aur "To" date select karo, sirf usi period ka data aayega
-Output mein Date, Channel Name, Title, Link (clickable ▶ Watch), Views, Likes, Comments
-Radio label badal ke "Tell me the Data you Want From Me ( Tushar AI )" kar diya
-Design overhaul:
-
-Dark space theme — deep navy/purple gradient background
-"Tushar AI" branded hero banner with red accent
-Space Grotesk + Inter font pairing
-4 summary metric cards (Videos, Views, Likes, Comments) with color coding
-Channel name chips/tags show karte hain jo select kiye
-Progress bar while fetching multiple channels
-Download filename mein date range aur channel names automatically include hote hain
-GitHub pe update karo: purana app.py replace karo is nayi file se — requirements.txt same rehne do.
-
-
-App
-PY 
-ek per line — multiple supported remove this 
-and ⚡ Powered by Tushar AI remove this
-📺 Tell me the Data you Want From Me ( Tushar AI )
-remove this
-give me create ai name to say and remove hindi words
-
-1:29 PM
-
-Reading current app.py to find exact strings
-Reading current app.py to find exact strings
-Now I'll make all the targeted edits:
-
-
-Edited 9 files, read a file
-Edited 9 files, read a file
-All changes done. Here's a summary of what was updated:
-
-Removed:
-
-"ek per line — multiple supported" hint text
-"⚡ Powered by Tushar AI" badge from hero
-"📺 Tell me the Data you Want From Me ( Tushar AI )" section label
-All Hindi words (daalo, galat hai, fetch ho rahi hai, Koi data nahi mila, etc.)
-AI Name — VidIQ Nova:
-
-Page title, hero banner, footer, download filenames, sidebar — all updated to VidIQ Nova
-Just replace app.py on GitHub with this file and it'll redeploy automatically.
-
-
-App
-PY 
-
-
-
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-App · PY
 import streamlit as st
 from googleapiclient.discovery import build
 import pandas as pd
 import re
 from io import BytesIO
 from datetime import date, timedelta
- 
+
 st.set_page_config(
     page_title="VidIQ Nova — YouTube Analytics",
     page_icon="🤖",
     layout="wide"
 )
- 
+
 # ── Global CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
- 
+
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
- 
+
 /* Page background */
 .stApp {
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     min-height: 100vh;
 }
- 
+
 /* Hide default streamlit header */
 header[data-testid="stHeader"] { background: transparent; }
- 
+
 /* Hero banner */
 .hero {
     background: linear-gradient(120deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -286,7 +76,7 @@ header[data-testid="stHeader"] { background: transparent; }
     border-radius: 20px;
     margin-bottom: 0.8rem;
 }
- 
+
 /* Section headers */
 .section-head {
     font-family: 'Space Grotesk', sans-serif;
@@ -297,7 +87,7 @@ header[data-testid="stHeader"] { background: transparent; }
     color: rgba(255,255,255,0.4);
     margin-bottom: 0.5rem;
 }
- 
+
 /* Input panel */
 .input-panel {
     background: rgba(255,255,255,0.04);
@@ -306,7 +96,7 @@ header[data-testid="stHeader"] { background: transparent; }
     padding: 1.5rem 1.5rem 1rem;
     margin-bottom: 1.2rem;
 }
- 
+
 /* Metric cards */
 .metric-row {
     display: flex;
@@ -350,7 +140,7 @@ header[data-testid="stHeader"] { background: transparent; }
 .metric-card.green .m-value { color: #81c784; }
 .metric-card.amber { border-color: rgba(255,183,77,0.35); }
 .metric-card.amber .m-value { color: #ffb74d; }
- 
+
 /* Channel tag chips */
 .ch-chip {
     display: inline-block;
@@ -362,7 +152,7 @@ header[data-testid="stHeader"] { background: transparent; }
     border-radius: 20px;
     margin: 2px 4px 2px 0;
 }
- 
+
 /* Streamlit overrides */
 div[data-testid="stTextInput"] > label,
 div[data-testid="stDateInput"] > label,
@@ -438,7 +228,7 @@ hr { border-color: rgba(255,255,255,0.08) !important; }
 div[data-testid="stSpinner"] p { color: rgba(255,255,255,0.6) !important; }
 </style>
 """, unsafe_allow_html=True)
- 
+
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
@@ -446,7 +236,7 @@ st.markdown("""
   <p class="hero-sub">Multi-channel intelligence · Date range filter · Shorts, Long Videos & Community Posts</p>
 </div>
 """, unsafe_allow_html=True)
- 
+
 # ── Sidebar — API Key ─────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="section-head">🔑 API Configuration</div>', unsafe_allow_html=True)
@@ -455,7 +245,7 @@ with st.sidebar:
         api_key = st.text_input("YouTube API Key", type="password", placeholder="AIzaSy...")
     else:
         st.success("API Key loaded from secrets ✓")
- 
+
     st.markdown("---")
     st.markdown('<div class="section-head">ℹ️ About</div>', unsafe_allow_html=True)
     st.markdown(
@@ -465,17 +255,17 @@ with st.sidebar:
         "</p>",
         unsafe_allow_html=True
     )
- 
+
 # ── Input Panel ───────────────────────────────────────────────────────────────
 col_left, col_right = st.columns([3, 2], gap="large")
- 
+
 with col_left:
     channel_ids_raw = st.text_area(
         "Channel IDs (one per line)",
         placeholder="UCxxxxxxxxxxxxxxxxxxxxxx\nUCyyyyyyyyyyyyyyyyyyyyyy\nUCzzzzzzzzzzzzzzzzzzzzzz",
         height=120
     )
- 
+
     st.markdown('<div class="section-head" style="margin-top:1rem;">📂 Content Type</div>', unsafe_allow_html=True)
     content_type = st.radio(
         "Content type",
@@ -483,20 +273,20 @@ with col_left:
         horizontal=True,
         label_visibility="collapsed"
     )
- 
+
 with col_right:
     st.markdown('<div class="section-head">📅 Date Range</div>', unsafe_allow_html=True)
     today = date.today()
     default_start = today - timedelta(days=90)
- 
+
     date_start = st.date_input("From", value=default_start, max_value=today)
     date_end   = st.date_input("To",   value=today,          max_value=today)
- 
+
     if date_start > date_end:
         st.error("Start date cannot be after end date.")
- 
+
 st.markdown("---")
- 
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def fmt(n):
     try:
@@ -506,27 +296,27 @@ def fmt(n):
         return str(n)
     except:
         return "—"
- 
+
 def duration_to_seconds(duration):
     m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
     if not m: return 0
     return (int(m.group(1) or 0) * 3600 +
             int(m.group(2) or 0) * 60  +
             int(m.group(3) or 0))
- 
+
 def convert_duration(duration):
     s = duration_to_seconds(duration)
     h, r = divmod(s, 3600)
     m, sec = divmod(r, 60)
     return f"{h:02d}:{m:02d}:{sec:02d}" if h else f"{m:02d}:{sec:02d}"
- 
+
 def in_date_range(pub_str, start, end):
     try:
         pub = pd.to_datetime(pub_str).date()
         return start <= pub <= end
     except:
         return False
- 
+
 def get_channel_info(yt, cid):
     resp = yt.channels().list(
         part='snippet,contentDetails,statistics', id=cid
@@ -542,7 +332,7 @@ def get_channel_info(yt, cid):
         'total_videos': item['statistics'].get('videoCount', 0),
         'channel_id':  item['id'],
     }
- 
+
 def get_all_video_ids(yt, playlist_id):
     ids = []
     req = yt.playlistItems().list(
@@ -554,7 +344,7 @@ def get_all_video_ids(yt, playlist_id):
             ids.append(item['contentDetails']['videoId'])
         req = yt.playlistItems().list_next(req, resp)
     return ids
- 
+
 def get_video_details(yt, video_ids, filter_type, channel_name, channel_id, start, end):
     rows = []
     for i in range(0, len(video_ids), 50):
@@ -584,7 +374,7 @@ def get_video_details(yt, video_ids, filter_type, channel_name, channel_id, star
                 'Duration':     convert_duration(raw_dur),
             })
     return rows
- 
+
 def get_community_posts(yt, channel_id, channel_name, start, end):
     posts = []
     try:
@@ -620,21 +410,21 @@ def get_community_posts(yt, channel_id, channel_name, start, end):
     except Exception as e:
         st.warning(f"Community posts error: {e}")
     return posts
- 
+
 def convert_to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Analytics')
     return output.getvalue()
- 
+
 # ── Fetch Button ──────────────────────────────────────────────────────────────
 _, btn_col, _ = st.columns([1, 2, 1])
 with btn_col:
     fetch = st.button("⚡ Fetch Analytics", type="primary")
- 
+
 if fetch:
     channel_ids = [c.strip() for c in channel_ids_raw.strip().splitlines() if c.strip()]
- 
+
     if not api_key:
         st.error("🔑 API Key missing — add it in the sidebar or Streamlit Secrets.")
     elif not channel_ids:
@@ -645,53 +435,53 @@ if fetch:
         yt = build("youtube", "v3", developerKey=api_key)
         all_rows = []
         channel_names = []
- 
+
         progress = st.progress(0, text="Fetching channels...")
- 
+
         for idx, cid in enumerate(channel_ids):
             progress.progress((idx) / len(channel_ids), text=f"Fetching channel {idx+1} of {len(channel_ids)}...")
- 
+
             info = get_channel_info(yt, cid)
             if not info:
                 st.warning(f"Channel not found: `{cid}` — skipping.")
                 continue
- 
+
             channel_names.append(info['name'])
             filter_key = (
                 'short' if content_type == "⚡ Short Videos (Shorts)"
                 else 'long' if content_type == "🎬 Long Videos"
                 else 'community'
             )
- 
+
             if filter_key == 'community':
                 rows = get_community_posts(yt, info['channel_id'], info['name'], date_start, date_end)
             else:
                 vids = get_all_video_ids(yt, info['playlist'])
                 rows = get_video_details(yt, vids, filter_key, info['name'], info['channel_id'], date_start, date_end)
- 
+
             all_rows.extend(rows)
- 
+
         progress.progress(1.0, text="Done!")
         progress.empty()
- 
+
         if not all_rows:
             st.warning("No data found for this date range. Please check your Channel IDs and date selection.")
         else:
             df = pd.DataFrame(all_rows)
- 
+
             # Numeric conversion
             for col in ['Views', 'Likes', 'Comments']:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype('Int64')
- 
+
             df = df.sort_values('Date', ascending=False).reset_index(drop=True)
- 
+
             # ── Summary Metrics ────────────────────────────────────────────
             total_videos  = len(df)
             total_views   = df['Views'].sum()   if 'Views'   in df.columns else 0
             total_likes   = df['Likes'].sum()   if 'Likes'   in df.columns else 0
             total_comments= df['Comments'].sum() if 'Comments' in df.columns else 0
- 
+
             st.markdown(f"""
             <div style="margin:1.5rem 0 0.5rem;">
               <div class="section-head">📊 Summary — {len(channel_names)} channel{'s' if len(channel_names)>1 else ''} · {date_start} → {date_end}</div>
@@ -722,14 +512,14 @@ if fetch:
               </div>
             </div>
             """, unsafe_allow_html=True)
- 
+
             # ── Data Table ─────────────────────────────────────────────────
             st.markdown('<div class="section-head">📋 Video Data</div>', unsafe_allow_html=True)
- 
+
             display_df = df.copy()
             # Make Link clickable in display
             display_df['Link'] = display_df['Link'].apply(lambda x: f'<a href="{x}" target="_blank">▶ Watch</a>')
- 
+
             st.dataframe(
                 df,
                 use_container_width=True,
@@ -742,7 +532,7 @@ if fetch:
                     "Date":     st.column_config.DateColumn("Date"),
                 }
             )
- 
+
             # ── Downloads ──────────────────────────────────────────────────
             st.markdown('<div class="section-head" style="margin-top:1.5rem;">📥 Export</div>', unsafe_allow_html=True)
             suffix = (
@@ -753,7 +543,7 @@ if fetch:
             date_tag = f"{date_start}_to_{date_end}"
             channels_tag = "_".join([n.replace(" ", "-") for n in channel_names])[:40]
             fname = f"VidIQNova_{channels_tag}_{suffix}_{date_tag}"
- 
+
             dl1, dl2 = st.columns(2)
             with dl1:
                 st.download_button(
@@ -769,7 +559,7 @@ if fetch:
                     file_name=f"{fname}.csv",
                     mime="text/csv"
                 )
- 
+
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center;margin-top:3rem;padding:1rem 0;border-top:1px solid rgba(255,255,255,0.08);">
@@ -778,6 +568,3 @@ st.markdown("""
   </span>
 </div>
 """, unsafe_allow_html=True)
- 
-
-
