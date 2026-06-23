@@ -3,261 +3,571 @@ from googleapiclient.discovery import build
 import pandas as pd
 import re
 from io import BytesIO
+from datetime import date, timedelta
 
 st.set_page_config(
-    page_title="YouTube Analytics Tool",
-    page_icon="🎬",
-    layout="centered"
+    page_title="Tushar AI — YouTube Analytics",
+    page_icon="🤖",
+    layout="wide"
 )
 
-st.title("🎬 YouTube Channel Analytics")
-st.caption("Channel ID se video data download karo!")
-st.markdown("---")
+# ── Global CSS ────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
 
-# API Key
-api_key = st.secrets.get("YOUTUBE_API_KEY", None)
-if not api_key:
-    api_key = st.sidebar.text_input(
-        "YouTube API Key",
-        type="password",
-        placeholder="AIzaSy..."
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Page background */
+.stApp {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+}
+
+/* Hide default streamlit header */
+header[data-testid="stHeader"] { background: transparent; }
+
+/* Hero banner */
+.hero {
+    background: linear-gradient(120deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border: 1px solid rgba(229, 57, 53, 0.3);
+    border-radius: 20px;
+    padding: 2.5rem 2rem 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(229,57,53,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.hero-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.3rem;
+    letter-spacing: -0.5px;
+}
+.hero-title span {
+    color: #e53935;
+}
+.hero-sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.55);
+    margin: 0;
+}
+.ai-badge {
+    display: inline-block;
+    background: rgba(229,57,53,0.15);
+    border: 1px solid rgba(229,57,53,0.4);
+    color: #e53935;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 0.8rem;
+}
+
+/* Section headers */
+.section-head {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 0.5rem;
+}
+
+/* Input panel */
+.input-panel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem 1.5rem 1rem;
+    margin-bottom: 1.2rem;
+}
+
+/* Metric cards */
+.metric-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.metric-card {
+    flex: 1;
+    min-width: 140px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 1.1rem 1.2rem;
+}
+.metric-card .m-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 6px;
+}
+.metric-card .m-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+}
+.metric-card .m-sub {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.3);
+    margin-top: 4px;
+}
+.metric-card.red { border-color: rgba(229,57,53,0.35); }
+.metric-card.red .m-value { color: #e57373; }
+.metric-card.blue { border-color: rgba(66,165,245,0.35); }
+.metric-card.blue .m-value { color: #64b5f6; }
+.metric-card.green { border-color: rgba(102,187,106,0.35); }
+.metric-card.green .m-value { color: #81c784; }
+.metric-card.amber { border-color: rgba(255,183,77,0.35); }
+.metric-card.amber .m-value { color: #ffb74d; }
+
+/* Channel tag chips */
+.ch-chip {
+    display: inline-block;
+    background: rgba(229,57,53,0.12);
+    border: 1px solid rgba(229,57,53,0.3);
+    color: #ef9a9a;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin: 2px 4px 2px 0;
+}
+
+/* Streamlit overrides */
+div[data-testid="stTextInput"] > label,
+div[data-testid="stDateInput"] > label,
+div[data-testid="stRadio"] > label,
+div[data-testid="stTextArea"] > label {
+    color: rgba(255,255,255,0.6) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+}
+div[data-testid="stTextInput"] input,
+div[data-testid="stDateInput"] input {
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 10px !important;
+    color: #fff !important;
+}
+div[data-testid="stTextArea"] textarea {
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 10px !important;
+    color: #fff !important;
+    font-family: 'Inter', monospace !important;
+    font-size: 0.85rem !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] label {
+    color: rgba(255,255,255,0.75) !important;
+    font-size: 0.9rem !important;
+}
+/* Primary button */
+div[data-testid="stButton"] > button[kind="primary"] {
+    background: linear-gradient(135deg, #e53935, #c62828) !important;
+    border: none !important;
+    color: white !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding: 0.65rem 2rem !important;
+    border-radius: 12px !important;
+    letter-spacing: 0.02em !important;
+    transition: opacity 0.2s !important;
+    width: 100%;
+}
+div[data-testid="stButton"] > button[kind="primary"]:hover {
+    opacity: 0.88 !important;
+}
+/* Download button */
+div[data-testid="stDownloadButton"] > button {
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    font-weight: 500 !important;
+    width: 100% !important;
+}
+div[data-testid="stDownloadButton"] > button:hover {
+    background: rgba(255,255,255,0.12) !important;
+}
+/* Dataframe */
+div[data-testid="stDataFrame"] {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
+/* Success / error / info */
+div[data-testid="stAlert"] {
+    border-radius: 12px !important;
+    border: none !important;
+}
+/* Divider */
+hr { border-color: rgba(255,255,255,0.08) !important; }
+/* Spinner text */
+div[data-testid="stSpinner"] p { color: rgba(255,255,255,0.6) !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# ── Hero ──────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="hero">
+  <div class="ai-badge">⚡ Powered by Tushar AI</div>
+  <div class="hero-title">YouTube <span>Analytics</span></div>
+  <p class="hero-sub">Multi-channel data · Date range filter · Shorts & Long Videos · Community Posts</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Sidebar — API Key ─────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown('<div class="section-head">🔑 API Configuration</div>', unsafe_allow_html=True)
+    api_key = st.secrets.get("YOUTUBE_API_KEY", None)
+    if not api_key:
+        api_key = st.text_input("YouTube API Key", type="password", placeholder="AIzaSy...")
+    else:
+        st.success("API Key loaded from secrets ✓")
+
+    st.markdown("---")
+    st.markdown('<div class="section-head">ℹ️ About</div>', unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:rgba(255,255,255,0.4);font-size:0.78rem;line-height:1.6;'>"
+        "Tushar AI Analytics Tool — fetch YouTube video data, filter by content type & date range, "
+        "and export to Excel or CSV."
+        "</p>",
+        unsafe_allow_html=True
     )
 
-# Channel ID input
-channel_id = st.text_input(
-    "Channel ID daalo",
-    placeholder="UCctEsQirgs3hCmq"
-)
+# ── Input Panel ───────────────────────────────────────────────────────────────
+col_left, col_right = st.columns([3, 2], gap="large")
 
-# ── Content Type Filter ──────────────────────────────────────────────────────
-st.markdown("### 📂 Content Type Select Karo")
-content_type = st.radio(
-    label="Kaunsa data chahiye?",
-    options=["🎬 Long Videos", "⚡ Short Videos (Shorts)", "📢 Community Posts"],
-    horizontal=True
-)
+with col_left:
+    st.markdown('<div class="section-head">📺 Tell me the Data you Want From Me ( Tushar AI )</div>', unsafe_allow_html=True)
+
+    channel_ids_raw = st.text_area(
+        "Channel IDs (ek per line — multiple supported)",
+        placeholder="UCxxxxxxxxxxxxxxxxxxxxxx\nUCyyyyyyyyyyyyyyyyyyyyyy\nUCzzzzzzzzzzzzzzzzzzzzzz",
+        height=120
+    )
+
+    st.markdown('<div class="section-head" style="margin-top:1rem;">📂 Content Type</div>', unsafe_allow_html=True)
+    content_type = st.radio(
+        "Content type",
+        options=["🎬 Long Videos", "⚡ Short Videos (Shorts)", "📢 Community Posts"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+with col_right:
+    st.markdown('<div class="section-head">📅 Date Range</div>', unsafe_allow_html=True)
+    today = date.today()
+    default_start = today - timedelta(days=90)
+
+    date_start = st.date_input("From", value=default_start, max_value=today)
+    date_end   = st.date_input("To",   value=today,          max_value=today)
+
+    if date_start > date_end:
+        st.error("Start date cannot be after end date.")
+
 st.markdown("---")
 
-# ── Helper: duration string → total seconds ──────────────────────────────────
-def duration_to_seconds(duration: str) -> int:
-    match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
-    if not match:
-        return 0
-    h = int(match.group(1)) if match.group(1) else 0
-    m = int(match.group(2)) if match.group(2) else 0
-    s = int(match.group(3)) if match.group(3) else 0
-    return h * 3600 + m * 60 + s
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def fmt(n):
+    try:
+        n = int(n)
+        if n >= 1_000_000: return f"{n/1_000_000:.1f}M"
+        if n >= 1_000:     return f"{n/1_000:.1f}K"
+        return str(n)
+    except:
+        return "—"
 
-def convert_duration(duration: str) -> str:
-    total = duration_to_seconds(duration)
-    h, rem = divmod(total, 3600)
-    m, s = divmod(rem, 60)
-    if h > 0:
-        return f"{h:02d}:{m:02d}:{s:02d}"
-    return f"{m:02d}:{s:02d}"
+def duration_to_seconds(duration):
+    m = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+    if not m: return 0
+    return (int(m.group(1) or 0) * 3600 +
+            int(m.group(2) or 0) * 60  +
+            int(m.group(3) or 0))
 
-# ── YouTube API helpers ───────────────────────────────────────────────────────
-def get_channel_info(youtube, channel_id):
-    resp = youtube.channels().list(
-        part='snippet,contentDetails,statistics',
-        id=channel_id
+def convert_duration(duration):
+    s = duration_to_seconds(duration)
+    h, r = divmod(s, 3600)
+    m, sec = divmod(r, 60)
+    return f"{h:02d}:{m:02d}:{sec:02d}" if h else f"{m:02d}:{sec:02d}"
+
+def in_date_range(pub_str, start, end):
+    try:
+        pub = pd.to_datetime(pub_str).date()
+        return start <= pub <= end
+    except:
+        return False
+
+def get_channel_info(yt, cid):
+    resp = yt.channels().list(
+        part='snippet,contentDetails,statistics', id=cid
     ).execute()
-    if not resp['items']:
+    if not resp.get('items'):
         return None
     item = resp['items'][0]
     return {
-        'name':         item['snippet']['title'],
-        'playlist':     item['contentDetails']['relatedPlaylists']['uploads'],
-        'subscribers':  item['statistics']['subscriberCount'],
-        'total_views':  item['statistics']['viewCount'],
-        'total_videos': item['statistics']['videoCount'],
-        'channel_id':   item['id'],
+        'name':       item['snippet']['title'],
+        'playlist':   item['contentDetails']['relatedPlaylists']['uploads'],
+        'subscribers': item['statistics'].get('subscriberCount', 0),
+        'total_views': item['statistics'].get('viewCount', 0),
+        'total_videos': item['statistics'].get('videoCount', 0),
+        'channel_id':  item['id'],
     }
 
-def get_all_video_ids(youtube, playlist_id):
+def get_all_video_ids(yt, playlist_id):
     ids = []
-    request = youtube.playlistItems().list(
+    req = yt.playlistItems().list(
         part='contentDetails', playlistId=playlist_id, maxResults=50
     )
-    while request:
-        resp = request.execute()
+    while req:
+        resp = req.execute()
         for item in resp['items']:
             ids.append(item['contentDetails']['videoId'])
-        request = youtube.playlistItems().list_next(request, resp)
+        req = yt.playlistItems().list_next(req, resp)
     return ids
 
-def get_video_details(youtube, video_ids, filter_type):
-    """
-    filter_type: 'short' | 'long'
-    Returns list of dicts.
-    """
-    all_stats = []
+def get_video_details(yt, video_ids, filter_type, channel_name, channel_id, start, end):
+    rows = []
     for i in range(0, len(video_ids), 50):
-        resp = youtube.videos().list(
+        resp = yt.videos().list(
             part='snippet,statistics,contentDetails',
             id=','.join(video_ids[i:i+50])
         ).execute()
-        for video in resp['items']:
-            raw_dur = video['contentDetails']['duration']
+        for v in resp['items']:
+            pub = v['snippet']['publishedAt']
+            if not in_date_range(pub, start, end):
+                continue
+            raw_dur = v['contentDetails']['duration']
             secs = duration_to_seconds(raw_dur)
-
-            # Shorts: ≤ 60 seconds; Long: > 60 seconds
             if filter_type == 'short' and secs > 60:
                 continue
-            if filter_type == 'long' and secs <= 60:
+            if filter_type == 'long'  and secs <= 60:
                 continue
-
-            all_stats.append({
-                'Date':     video['snippet']['publishedAt'],
-                'Video_Id': video['id'],
-                'Title':    video['snippet']['title'],
-                'Views':    video['statistics'].get('viewCount'),
-                'Likes':    video['statistics'].get('likeCount'),
-                'Comments': video['statistics'].get('commentCount'),
-                'Duration': convert_duration(raw_dur),
-                'Duration_Sec': secs,
+            vid_id = v['id']
+            rows.append({
+                'Date':         pd.to_datetime(pub).date(),
+                'Channel Name': channel_name,
+                'Title':        v['snippet']['title'],
+                'Link':         f"https://www.youtube.com/watch?v={vid_id}",
+                'Views':        v['statistics'].get('viewCount',  0),
+                'Likes':        v['statistics'].get('likeCount',  0),
+                'Comments':     v['statistics'].get('commentCount', 0),
+                'Duration':     convert_duration(raw_dur),
             })
-    return all_stats
+    return rows
 
-def get_community_posts(youtube, channel_id):
-    """
-    Fetch community posts via activities endpoint.
-    Note: Only returns posts where the channel has enabled the Community tab.
-    """
+def get_community_posts(yt, channel_id, channel_name, start, end):
     posts = []
     try:
-        request = youtube.activities().list(
-            part='snippet,contentDetails',
-            channelId=channel_id,
-            maxResults=50
+        req = yt.activities().list(
+            part='snippet,contentDetails', channelId=channel_id, maxResults=50
         )
-        while request:
-            resp = request.execute()
+        while req:
+            resp = req.execute()
             for item in resp.get('items', []):
                 if item['snippet']['type'] != 'bulletin':
                     continue
+                pub = item['snippet']['publishedAt']
+                if not in_date_range(pub, start, end):
+                    continue
                 desc = item['snippet'].get('description', '')
                 posts.append({
-                    'Date':        item['snippet']['publishedAt'],
-                    'Post_Id':     item['id'],
-                    'Description': desc[:300] + ('…' if len(desc) > 300 else ''),
-                    'Likes':       None,   # YouTube Data API v3 doesn't expose post likes
-                    'Comments':    None,   # Same limitation
+                    'Date':         pd.to_datetime(pub).date(),
+                    'Channel Name': channel_name,
+                    'Title':        desc[:120] + ('…' if len(desc) > 120 else ''),
+                    'Link':         f"https://www.youtube.com/channel/{channel_id}/community",
+                    'Views':        '—',
+                    'Likes':        '—',
+                    'Comments':     '—',
                 })
-            next_page = resp.get('nextPageToken')
-            if next_page:
-                request = youtube.activities().list(
-                    part='snippet,contentDetails',
-                    channelId=channel_id,
-                    maxResults=50,
-                    pageToken=next_page
+            npt = resp.get('nextPageToken')
+            if npt:
+                req = yt.activities().list(
+                    part='snippet,contentDetails', channelId=channel_id,
+                    maxResults=50, pageToken=npt
                 )
             else:
                 break
     except Exception as e:
-        st.warning(f"Community posts fetch mein issue aaya: {e}")
+        st.warning(f"Community posts error: {e}")
     return posts
 
 def convert_to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Data')
+        df.to_excel(writer, index=False, sheet_name='Analytics')
     return output.getvalue()
 
-# ── Main Fetch Button ─────────────────────────────────────────────────────────
-if st.button("🚀 Data Fetch Karo!", type="primary"):
+# ── Fetch Button ──────────────────────────────────────────────────────────────
+_, btn_col, _ = st.columns([1, 2, 1])
+with btn_col:
+    fetch = st.button("⚡ Fetch Analytics", type="primary")
+
+if fetch:
+    channel_ids = [c.strip() for c in channel_ids_raw.strip().splitlines() if c.strip()]
+
     if not api_key:
-        st.error("API Key daalo!")
-    elif not channel_id:
-        st.error("Channel ID daalo!")
+        st.error("🔑 API Key missing — add it in the sidebar or Streamlit Secrets.")
+    elif not channel_ids:
+        st.error("📺 At least one Channel ID daalo.")
+    elif date_start > date_end:
+        st.error("📅 Date range galat hai.")
     else:
-        youtube = build("youtube", "v3", developerKey=api_key)
+        yt = build("youtube", "v3", developerKey=api_key)
+        all_rows = []
+        channel_names = []
 
-        with st.spinner("Channel info fetch ho rahi hai..."):
-            channel_info = get_channel_info(youtube, channel_id)
+        progress = st.progress(0, text="Fetching channels...")
 
-        if not channel_info:
-            st.error("Channel nahi mila! Channel ID check karo.")
-            st.stop()
+        for idx, cid in enumerate(channel_ids):
+            progress.progress((idx) / len(channel_ids), text=f"Channel {idx+1}/{len(channel_ids)} fetch ho rahi hai...")
 
-        # Channel stats
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Subscribers",   f"{int(channel_info['subscribers']):,}")
-        col2.metric("Total Views",   f"{int(channel_info['total_views']):,}")
-        col3.metric("Total Videos",  channel_info['total_videos'])
+            info = get_channel_info(yt, cid)
+            if not info:
+                st.warning(f"Channel not found: `{cid}` — skipping.")
+                continue
 
-        channel_name = channel_info['name'].replace(" ", "_")
-        df = None
+            channel_names.append(info['name'])
+            filter_key = (
+                'short' if content_type == "⚡ Short Videos (Shorts)"
+                else 'long' if content_type == "🎬 Long Videos"
+                else 'community'
+            )
 
-        # ── Community Posts ───────────────────────────────────────────────────
-        if content_type == "📢 Community Posts":
-            with st.spinner("Community posts fetch ho rahe hain..."):
-                posts = get_community_posts(youtube, channel_info['channel_id'])
-
-            if not posts:
-                st.warning(
-                    "Koi community post nahi mila. "
-                    "Possible reasons:\n"
-                    "- Channel ka Community tab nahi hai\n"
-                    "- YouTube Data API v3 is channel ke posts expose nahi karta\n"
-                    "- Channel ID galat hai"
-                )
+            if filter_key == 'community':
+                rows = get_community_posts(yt, info['channel_id'], info['name'], date_start, date_end)
             else:
-                df = pd.DataFrame(posts)
-                df['Date'] = pd.to_datetime(df['Date']).dt.date
-                st.success(f"✅ {len(df)} community posts mile!")
-                st.info(
-                    "ℹ️ YouTube Data API v3 community posts ke Likes & Comments "
-                    "expose nahi karta — woh columns blank rahenge."
-                )
-                st.dataframe(df, use_container_width=True)
+                vids = get_all_video_ids(yt, info['playlist'])
+                rows = get_video_details(yt, vids, filter_key, info['name'], info['channel_id'], date_start, date_end)
 
-        # ── Short / Long Videos ───────────────────────────────────────────────
+            all_rows.extend(rows)
+
+        progress.progress(1.0, text="Done!")
+        progress.empty()
+
+        if not all_rows:
+            st.warning("Koi data nahi mila is date range mein. Date range ya Channel IDs check karo.")
         else:
-            filter_key = 'short' if content_type == "⚡ Short Videos (Shorts)" else 'long'
-            label      = "Shorts" if filter_key == 'short' else "Long Videos"
+            df = pd.DataFrame(all_rows)
 
-            with st.spinner(f"Video IDs fetch ho rahe hain..."):
-                video_ids = get_all_video_ids(youtube, channel_info['playlist'])
+            # Numeric conversion
+            for col in ['Views', 'Likes', 'Comments']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype('Int64')
 
-            with st.spinner(f"{label} filter kar rahe hain ({len(video_ids)} total videos)..."):
-                details = get_video_details(youtube, video_ids, filter_key)
+            df = df.sort_values('Date', ascending=False).reset_index(drop=True)
 
-            if not details:
-                st.warning(f"Koi {label} nahi mila is channel mein.")
-            else:
-                df = pd.DataFrame(details)
-                df['Date']     = pd.to_datetime(df['Date']).dt.date
-                df['Views']    = pd.to_numeric(df['Views'])
-                df['Likes']    = pd.to_numeric(df['Likes'])
-                df['Comments'] = pd.to_numeric(df['Comments'])
-                # Remove helper column before display/download
-                df_display = df.drop(columns=['Duration_Sec'])
+            # ── Summary Metrics ────────────────────────────────────────────
+            total_videos  = len(df)
+            total_views   = df['Views'].sum()   if 'Views'   in df.columns else 0
+            total_likes   = df['Likes'].sum()   if 'Likes'   in df.columns else 0
+            total_comments= df['Comments'].sum() if 'Comments' in df.columns else 0
 
-                st.success(f"✅ {len(df_display)} {label} mile!")
-                st.dataframe(df_display, use_container_width=True)
-                df = df_display   # use cleaned df for downloads
+            st.markdown(f"""
+            <div style="margin:1.5rem 0 0.5rem;">
+              <div class="section-head">📊 Summary — {len(channel_names)} channel{'s' if len(channel_names)>1 else ''} · {date_start} → {date_end}</div>
+              <div style="margin-bottom:10px;">
+                {''.join(f'<span class="ch-chip">📺 {n}</span>' for n in channel_names)}
+              </div>
+              <div class="metric-row">
+                <div class="metric-card amber">
+                  <div class="m-label">Videos Found</div>
+                  <div class="m-value">{total_videos:,}</div>
+                  <div class="m-sub">{content_type.split()[1]} content</div>
+                </div>
+                <div class="metric-card blue">
+                  <div class="m-label">Total Views</div>
+                  <div class="m-value">{fmt(total_views)}</div>
+                  <div class="m-sub">combined</div>
+                </div>
+                <div class="metric-card red">
+                  <div class="m-label">Total Likes</div>
+                  <div class="m-value">{fmt(total_likes)}</div>
+                  <div class="m-sub">combined</div>
+                </div>
+                <div class="metric-card green">
+                  <div class="m-label">Comments</div>
+                  <div class="m-value">{fmt(total_comments)}</div>
+                  <div class="m-sub">combined</div>
+                </div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # ── Download Buttons ──────────────────────────────────────────────────
-        if df is not None and not df.empty:
-            st.subheader("📥 Download karo:")
-            col1, col2 = st.columns(2)
+            # ── Data Table ─────────────────────────────────────────────────
+            st.markdown('<div class="section-head">📋 Video Data</div>', unsafe_allow_html=True)
+
+            display_df = df.copy()
+            # Make Link clickable in display
+            display_df['Link'] = display_df['Link'].apply(lambda x: f'<a href="{x}" target="_blank">▶ Watch</a>')
+
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Link": st.column_config.LinkColumn("Link", display_text="▶ Watch"),
+                    "Views":    st.column_config.NumberColumn("Views",    format="%d"),
+                    "Likes":    st.column_config.NumberColumn("Likes",    format="%d"),
+                    "Comments": st.column_config.NumberColumn("Comments", format="%d"),
+                    "Date":     st.column_config.DateColumn("Date"),
+                }
+            )
+
+            # ── Downloads ──────────────────────────────────────────────────
+            st.markdown('<div class="section-head" style="margin-top:1.5rem;">📥 Export</div>', unsafe_allow_html=True)
             suffix = (
                 "shorts"     if content_type == "⚡ Short Videos (Shorts)"
-                else "long_videos" if content_type == "🎬 Long Videos"
-                else "community_posts"
+                else "long"  if content_type == "🎬 Long Videos"
+                else "community"
             )
-            with col1:
+            date_tag = f"{date_start}_to_{date_end}"
+            channels_tag = "_".join([n.replace(" ", "-") for n in channel_names])[:40]
+            fname = f"TusharAI_{channels_tag}_{suffix}_{date_tag}"
+
+            dl1, dl2 = st.columns(2)
+            with dl1:
                 st.download_button(
-                    label="⬇️ CSV Download",
-                    data=df.to_csv(index=False),
-                    file_name=f"{channel_name}_{suffix}.csv",
-                    mime="text/csv"
-                )
-            with col2:
-                st.download_button(
-                    label="⬇️ Excel Download",
+                    "⬇️ Download Excel",
                     data=convert_to_excel(df),
-                    file_name=f"{channel_name}_{suffix}.xlsx",
+                    file_name=f"{fname}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
+            with dl2:
+                st.download_button(
+                    "⬇️ Download CSV",
+                    data=df.to_csv(index=False),
+                    file_name=f"{fname}.csv",
+                    mime="text/csv"
+                )
+
+# ── Footer ────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="text-align:center;margin-top:3rem;padding:1rem 0;border-top:1px solid rgba(255,255,255,0.08);">
+  <span style="font-size:0.78rem;color:rgba(255,255,255,0.2);letter-spacing:0.08em;">
+    TUSHAR AI · YOUTUBE ANALYTICS · Built with Streamlit
+  </span>
+</div>
+""", unsafe_allow_html=True)
