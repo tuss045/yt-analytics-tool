@@ -363,15 +363,19 @@ def get_video_details(yt, video_ids, filter_type, channel_name, channel_id, star
             if filter_type == 'long'  and secs <= 60:
                 continue
             vid_id = v['id']
+            link = (
+                f"https://www.youtube.com/shorts/{vid_id}"
+                if filter_type == 'short'
+                else f"https://www.youtube.com/watch?v={vid_id}"
+            )
             rows.append({
                 'Date':         pd.to_datetime(pub).date(),
                 'Channel Name': channel_name,
                 'Title':        v['snippet']['title'],
-                'Link':         f"https://www.youtube.com/watch?v={vid_id}",
+                'Link':         link,
                 'Views':        v['statistics'].get('viewCount',  0),
                 'Likes':        v['statistics'].get('likeCount',  0),
                 'Comments':     v['statistics'].get('commentCount', 0),
-                'Duration':     convert_duration(raw_dur),
             })
     return rows
 
