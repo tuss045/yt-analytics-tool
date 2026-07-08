@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>G2V Channel Growth Analyser</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f6f4;--surface:#ffffff;--surface2:#f0efec;--surface3:#e8e7e3;
+  --border:rgba(0,0,0,0.09);--border-md:rgba(0,0,0,0.15);
+  --text:#1a1a18;--text2:#5c5c58;--text3:#9c9c96;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;--blue-text:#1d4ed8;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;--green-text:#15803d;
+  --red:#dc2626;--red-bg:#fef2f2;--red-bd:#fecaca;--red-text:#b91c1c;
+  --yellow-bg:#fefce8;--yellow-bd:#fde68a;--yellow-text:#92400e;
+  --purple-bg:#faf5ff;--purple-bd:#e9d5ff;--purple-text:#7c3aed;
+  --orange-bg:#fff7ed;--orange-bd:#fed7aa;--orange-text:#c2410c;
+  --r:10px;--rlg:14px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#141412;--surface:#1e1e1c;--surface2:#282826;--surface3:#323230;
+  --border:rgba(255,255,255,0.07);--border-md:rgba(255,255,255,0.13);
+  --text:#e6e6e0;--text2:#9a9a94;--text3:#606058;
+  --blue-bg:#1a2d4a;--blue-bd:#1e40af;--blue-text:#93c5fd;
+  --green-bg:#14231e;--green-bd:#166534;--green-text:#86efac;
+  --red-bg:#2a1414;--red-bd:#991b1b;--red-text:#fca5a5;
+  --yellow-bg:#221e0e;--yellow-bd:#92400e;--yellow-text:#fde68a;
+  --purple-bg:#1e1428;--purple-bd:#6d28d9;--purple-text:#c4b5fd;
+  --orange-bg:#1e1208;--orange-bd:#c2410c;--orange-text:#fdba74;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:1.5rem 1rem 3rem}
+.wrap{max-width:740px;margin:0 auto}
+
+/* Header */
+.hdr{margin-bottom:1.75rem}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hdr h1{font-size:22px;font-weight:600}
+.hdr h1 span{color:var(--blue)}
+.hdr p{font-size:13px;color:var(--text2);margin-top:4px}
+.badge-pw{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple-text);font-weight:500;white-space:nowrap}
+
+/* API banner */
+.api-banner{background:var(--yellow-bg);border:1px solid var(--yellow-bd);border-radius:var(--r);padding:13px 15px;margin-bottom:1.25rem;display:flex;gap:10px;align-items:flex-start}
+.api-banner.hidden{display:none}
+.api-banner p{font-size:12px;color:var(--yellow-text);margin-bottom:8px}
+.key-row{display:flex;gap:8px}
+.key-row input{flex:1;padding:7px 11px;font-size:12px;font-family:monospace;border:1px solid var(--border-md);border-radius:8px;background:var(--surface);color:var(--text)}
+.key-row input:focus{outline:2px solid var(--blue)}
+.btn-save{padding:7px 14px;font-size:12px;font-weight:600;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;white-space:nowrap}
+.btn-save:hover{opacity:0.85}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1.25rem;margin-bottom:1rem}
+.lbl{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:9px}
+
+/* Tabs for paste method */
+.tabs{display:flex;gap:4px;margin-bottom:14px;background:var(--surface2);padding:4px;border-radius:var(--r)}
+.tab{flex:1;padding:7px;font-size:12px;font-weight:500;text-align:center;border-radius:7px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all 0.15s}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
+/* Paste area */
+textarea{width:100%;min-height:120px;resize:vertical;font-family:'Courier New',monospace;font-size:11.5px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border-md);background:var(--surface2);color:var(--text);line-height:1.6}
+textarea:focus{outline:2px solid var(--blue);border-color:transparent}
+.hint{font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6}
+
+/* Channel selector */
+.ch-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.ch-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border-md);background:transparent;color:var(--text2);cursor:pointer;transition:all 0.15s}
+.ch-chip:hover{background:var(--surface2)}
+.ch-chip.sel{background:var(--blue-bg);border-color:var(--blue-bd);color:var(--blue-text);font-weight:500}
+
+/* Run btn */
+.run-btn{width:100%;margin-top:13px;padding:11px;font-size:14px;font-weight:600;border-radius:var(--r);border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.15s}
+.run-btn:hover:not(:disabled){opacity:0.87}
+.run-btn:disabled{opacity:0.42;cursor:not-allowed}
+
+/* Error */
+.err{margin-top:10px;padding:10px 13px;border-radius:var(--r);background:var(--red-bg);color:var(--red-text);font-size:13px;display:none}
+.err.show{display:block}
+
+/* Loading */
+.loading{display:none;flex-direction:column;gap:9px;padding:0.5rem 0}
+.loading.show{display:flex}
+.load-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
+.ldot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border-md);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.ldot.spin{border-top-color:var(--blue);animation:spin 0.75s linear infinite}
+.ldot.done{background:var(--green-bg);border-color:var(--green-bd);color:var(--green-text);font-weight:700}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Results */
+.results{display:none}
+.results.show{display:block}
+
+/* Winner banner */
+.winner-banner{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--rlg);border:1px solid var(--green-bd);background:var(--green-bg);margin-bottom:1rem}
+.winner-trophy{font-size:28px;flex-shrink:0}
+.winner-body h2{font-size:16px;font-weight:600;color:var(--green-text)}
+.winner-body p{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* Channel cards grid */
+.ch-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:1rem}
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:14px;position:relative;overflow:hidden}
+.ch-card.top-card{border-color:var(--green-bd);background:var(--green-bg)}
+.ch-card-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-stat{margin-bottom:6px}
+.ch-stat-lbl{font-size:10px;color:var(--text3)}
+.ch-stat-val{font-size:18px;font-weight:600;color:var(--text)}
+.ch-stat-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.rank-badge{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.rank-1{background:var(--yellow-bg);color:#b45309;border:1px solid var(--yellow-bd)}
+.rank-2{background:var(--surface3);color:var(--text2);border:1px solid var(--border-md)}
+.rank-3{background:var(--orange-bg);color:var(--orange-text);border:1px solid var(--orange-bd)}
+.rank-4{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+
+/* Growth bar */
+.growth-section{margin-bottom:1rem}
+.growth-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.growth-name{font-size:12px;color:var(--text2);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.growth-bar-wrap{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.growth-bar{height:100%;border-radius:5px;transition:width 0.6s ease;background:var(--blue)}
+.growth-bar.top{background:var(--green)}
+.growth-val{font-size:12px;font-weight:600;color:var(--text);min-width:60px;text-align:right}
+
+/* Narrative */
+.narrative{font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap}
+
+/* Recs */
+.recs{list-style:none;display:flex;flex-direction:column;gap:8px}
+.rec{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:var(--r);border:1px solid var(--border);font-size:13px;color:var(--text);line-height:1.55}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.r-high{background:#ef4444}.r-med{background:#f59e0b}.r-low{background:#3b82f6}
+
+/* Priority tag */
+.ptag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;flex-shrink:0;margin-top:2px}
+.ptag-high{background:var(--red-bg);color:var(--red-text)}
+.ptag-med{background:var(--yellow-bg);color:var(--yellow-text)}
+.ptag-low{background:var(--blue-bg);color:var(--blue-text)}
+
+/* Section title */
+.sec-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:13px;display:flex;align-items:center;gap:7px}
+
+/* Footer */
+.footer-btns{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.footer-btns button{flex:1;min-width:110px;padding:9px 12px;font-size:13px;border-radius:var(--r);border:1px solid var(--border-md);background:var(--surface);color:var(--text2);cursor:pointer;transition:background 0.15s}
+.footer-btns button:hover{background:var(--surface2);color:var(--text)}
+.powered{text-align:center;font-size:11px;color:var(--text3);margin-top:2rem}
+.powered a{color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <h1>📊 Channel <span>Growth</span> Analyser</h1>
+      <span class="badge-pw">G2V · Physics Wallah</span>
+    </div>
+    <p>Compare channel performance across YouTube, Instagram & Snapchat — week by week</p>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-banner" id="api-banner">
+    <div style="font-size:18px;flex-shrink:0">🔑</div>
+    <div style="flex:1">
+      <p>Enter your free <strong>Groq API key</strong> to activate AI analysis. Get one free at <a href="https://console.groq.com" target="_blank" style="color:inherit;font-weight:600">console.groq.com</a> → API Keys. Key stays in your browser only.</p>
+      <div class="key-row">
+        <input type="password" id="api-key-input" placeholder="gsk_...paste your key here..."/>
+        <button class="btn-save" onclick="saveKey()">Save key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="card">
+    <div class="lbl">Paste your weekly analytics data</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('csv',this)">CSV / Excel copy-paste</button>
+      <button class="tab" onclick="switchTab('sample',this)">Use sample data</button>
+    </div>
+
+    <div id="tab-csv">
+      <textarea id="raw-input" placeholder="Select your data rows in Excel/Sheets → Copy → Paste here.
+
+Expected columns (in any order):
+Channel Name, Week, Youtube Views, Youtube SS, Instagram Views, Instagram SS, Snapchat Views, Snapchat SS, Upload Count"></textarea>
+      <p class="hint">💡 Tip: Select from row 2 (skip header) and include all weeks you want to compare. The AI will figure out the rest.</p>
+    </div>
+
+    <div id="tab-sample" style="display:none">
+      <div class="ch-grid" style="margin-bottom:10px">
+        <button class="ch-chip sel" onclick="loadSample('may',this)">May data</button>
+        <button class="ch-chip" onclick="loadSample('june',this)">June data</button>
+        <button class="ch-chip" onclick="loadSample('full',this)">Full dataset</button>
+      </div>
+      <textarea id="sample-preview" readonly style="min-height:90px;opacity:0.7"></textarea>
+    </div>
+
+    <div class="lbl" style="margin-top:14px">Channels to compare</div>
+    <div class="ch-grid" id="ch-chips">
+      <button class="ch-chip sel" data-ch="Commerce_Classroom" onclick="toggleCh(this)">Commerce Classroom</button>
+      <button class="ch-chip sel" data-ch="Studyhub" onclick="toggleCh(this)">Studyhub</button>
+      <button class="ch-chip sel" data-ch="Commerce_Army" onclick="toggleCh(this)">Commerce Army</button>
+      <button class="ch-chip sel" data-ch="commercekafunda" onclick="toggleCh(this)">@commercekafunda</button>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+      ✨ Analyse channel growth
+    </button>
+    <div class="err" id="err-box"></div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="load-row"><div class="ldot" id="l0"></div><span>Reading channel data…</span></div>
+    <div class="load-row"><div class="ldot" id="l1"></div><span>Calculating growth metrics per channel…</span></div>
+    <div class="load-row"><div class="ldot" id="l2"></div><span>Ranking channels by performance…</span></div>
+    <div class="load-row"><div class="ldot" id="l3"></div><span>Generating strategic recommendations…</span></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <!-- Winner banner -->
+    <div class="winner-banner" id="winner-banner">
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-body">
+        <h2 id="winner-title">Top performer: —</h2>
+        <p id="winner-sub">Loading…</p>
+      </div>
+    </div>
+
+    <!-- Channel scorecards -->
+    <div class="card" style="padding-bottom:0.75rem">
+      <div class="sec-title">📋 Channel scorecards</div>
+      <div class="ch-cards" id="ch-cards"></div>
+    </div>
+
+    <!-- Growth bars -->
+    <div class="card">
+      <div class="sec-title">📈 YouTube views comparison</div>
+      <div id="yt-bars" class="growth-section"></div>
+      <div class="sec-title" style="margin-top:1rem">📱 Instagram views comparison</div>
+      <div id="ig-bars" class="growth-section"></div>
+    </div>
+
+    <!-- AI Narrative -->
+    <div class="card">
+      <div class="sec-title">🧠 AI growth analysis</div>
+      <div class="narrative" id="narrative-text"></div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <div class="sec-title">✅ Channel-specific actions</div>
+      <ul class="recs" id="recs-list"></ul>
+    </div>
+
+    <div class="footer-btns">
+      <button onclick="copyResults()">📋 Copy report</button>
+      <button onclick="resetAll()">🔄 New analysis</button>
+      <button onclick="window.print()">🖨️ Print / PDF</button>
+    </div>
+
+  </div>
+
+  <div class="powered">
+    Built for G2V · <a href="https://console.groq.com" target="_blank">Powered by Groq AI</a> · <a href="https://github.com/tuss045/data-insights-app" target="_blank">GitHub</a>
+  </div>
+
+</div>
+<script>
+// ── Sample data matching G2V format ──────────────────────────────────────────
+const SAMPLES = {
+  may: `Channel Name,Week,Youtube Views,Youtube SS,Instagram Views,Instagram SS,Snapchat Views,Snapchat SS,Upload Count
+Commerce_Classroom,May Week 1,242145,13,11300,13,3081,13,13
+Studyhub,May Week 1,50353,13,4407,13,1397,13,13
+Commerce_Army,May Week 1,5335658,13,2817,41,1397,13,13
+commercekafunda,May Week 1,15460,13,2353,46,571,13,13
+Commerce_Classroom,May Week 2,24955,14,3268,14,1873,14,14
+Studyhub,May Week 2,51323,12,3193,12,2407,12,12
+Commerce_Army,May Week 2,3557083,14,2463,19,68,14,14
+commercekafunda,May Week 2,17818,14,4153,14,853,14,14
+Commerce_Classroom,May Week 3,21144,13,3274,13,6241,13,13
+Studyhub,May Week 3,56800,15,6477,15,2478,15,15
+Commerce_Army,May Week 3,866836,13,2455,18,24,13,13
+commercekafunda,May Week 3,58717,11,1962,11,2189,11,11
+Commerce_Classroom,May Week 4,68010,22,3427,22,45948,22,22
+Studyhub,May Week 4,66528,15,9890,15,124642,15,15
+Commerce_Army,May Week 4,373400,13,3547,13,1106,15,13
+commercekafunda,May Week 4,615229,15,2788,15,1106,15,15`,
+
+  june: `Channel Name,Week,Youtube Views,Youtube SS,Instagram Views,Instagram SS,Snapchat Views,Snapchat SS,Upload Count
+Commerce_Classroom,June Week 1,43443,26,4069,8,21795,26,26
+Studyhub,June Week 1,73573,14,5334,0,69,14,14
+Commerce_Army,June Week 1,1275053,26,7033,18,4067,26,26
+commercekafunda,June Week 1,140923,51,2088,47,891,51,51`,
+
+  full: `Channel Name,Week,Youtube Views,Youtube SS,Instagram Views,Instagram SS,Snapchat Views,Snapchat SS,Upload Count
+Commerce_Classroom,May Week 1,242145,13,11300,13,3081,13,13
+Studyhub,May Week 1,50353,13,4407,13,1397,13,13
+Commerce_Army,May Week 1,5335658,13,2817,41,1397,13,13
+commercekafunda,May Week 1,15460,13,2353,46,571,13,13
+Commerce_Classroom,May Week 2,24955,14,3268,14,1873,14,14
+Studyhub,May Week 2,51323,12,3193,12,2407,12,12
+Commerce_Army,May Week 2,3557083,14,2463,19,68,14,14
+commercekafunda,May Week 2,17818,14,4153,14,853,14,14
+Commerce_Classroom,May Week 3,21144,13,3274,13,6241,13,13
+Studyhub,May Week 3,56800,15,6477,15,2478,15,15
+Commerce_Army,May Week 3,866836,13,2455,18,24,13,13
+commercekafunda,May Week 3,58717,11,1962,11,2189,11,11
+Commerce_Classroom,May Week 4,68010,22,3427,22,45948,22,22
+Studyhub,May Week 4,66528,15,9890,15,124642,15,15
+Commerce_Army,May Week 4,373400,13,3547,13,1106,15,13
+commercekafunda,May Week 4,615229,15,2788,15,1106,15,15
+Commerce_Classroom,June Week 1,43443,26,4069,8,21795,26,26
+Studyhub,June Week 1,73573,14,5334,0,69,14,14
+Commerce_Army,June Week 1,1275053,26,7033,18,4067,26,26
+commercekafunda,June Week 1,140923,51,2088,47,891,51,51`
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let activeTab = 'csv';
+let selectedChannels = new Set(['Commerce_Classroom','Studyhub','Commerce_Army','commercekafunda']);
+let lastResult = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (getKey()) document.getElementById('api-banner').classList.add('hidden');
+  loadSample('may', null);
+});
+
+// ── API Key ───────────────────────────────────────────────────────────────────
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k.startsWith('gsk_')) { alert('That does not look like a Groq key. It should start with gsk_'); return; }
+  localStorage.setItem('groq_key', k);
+  document.getElementById('api-banner').classList.add('hidden');
+  alert('✅ API key saved!');
+}
+function getKey() { return localStorage.getItem('groq_key') || ''; }
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-csv').style.display = tab === 'csv' ? 'block' : 'none';
+  document.getElementById('tab-sample').style.display = tab === 'sample' ? 'block' : 'none';
+}
+
+function loadSample(key, btn) {
+  document.getElementById('sample-preview').value = SAMPLES[key];
+  if (btn) {
+    document.querySelectorAll('#tab-sample .ch-chip').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+  }
+}
+
+function toggleCh(btn) {
+  const ch = btn.dataset.ch;
+  if (selectedChannels.has(ch)) {
+    if (selectedChannels.size > 1) { selectedChannels.delete(ch); btn.classList.remove('sel'); }
+  } else { selectedChannels.add(ch); btn.classList.add('sel'); }
+}
+
+// ── Loading steps ─────────────────────────────────────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function setStep(i, done) {
+  const d = document.getElementById('l'+i);
+  if (done) { d.textContent='✓'; d.classList.remove('spin'); d.classList.add('done'); }
+  else { d.textContent=''; d.classList.add('spin'); d.classList.remove('done'); }
+}
+
+// ── Main analysis ─────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const key = getKey();
+  const raw = activeTab === 'csv'
+    ? document.getElementById('raw-input').value.trim()
+    : document.getElementById('sample-preview').value.trim();
+
+  if (!raw) { showErr('Please paste your data or select a sample dataset.'); return; }
+  if (!key) { showErr('Please enter your Groq API key in the yellow box above.'); return; }
+
+  hideErr();
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.add('show');
+
+  setStep(0, false); await sleep(500); setStep(0, true);
+  setStep(1, false); await sleep(450);
+
+  const chList = [...selectedChannels].join(', ');
+  const prompt = `You are a senior social media analyst for an education company (G2V / Physics Wallah). 
+Analyze this weekly channel analytics data and return ONLY valid JSON, no markdown, no explanation.
+
+Data:
+${raw}
+
+Channels to focus on: ${chList}
+
+Return exactly this JSON:
+{
+  "winner": {
+    "name": "channel name",
+    "reason": "one sentence why this channel is the top performer with specific numbers"
+  },
+  "channels": [
+    {
+      "name": "channel name",
+      "rank": 1,
+      "yt_total": "formatted number e.g. 1.2M",
+      "ig_total": "formatted number",
+      "growth_score": 85,
+      "yt_raw": 1200000,
+      "ig_raw": 50000,
+      "highlight": "best achievement in one short phrase",
+      "weakness": "main weakness in one short phrase"
+    }
+  ],
+  "narrative": "4-5 sentences comparing all channels. Mention specific view counts, growth patterns, which platform each channel is strongest on, and which channel is underperforming and why.",
+  "recommendations": [
+    {
+      "channel": "channel name",
+      "action": "specific action to take",
+      "priority": "high|medium|low",
+      "platform": "YouTube|Instagram|Snapchat|All"
+    }
+  ]
+}
+
+Rules:
+- channels array: all channels from the data, sorted rank 1 (best) to last
+- growth_score: 0-100 score based on total views + growth trend
+- yt_raw and ig_raw: total views as plain integers for bar chart
+- recommendations: exactly 4 items, one per channel ideally
+- Return raw JSON only`;
+
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.25, max_tokens: 1200
+      })
+    });
+
+    setStep(1, true); setStep(2, false); await sleep(400);
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'Groq API error');
+
+    let text = data.choices[0].message.content;
+    text = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+
+    setStep(2, true); setStep(3, false); await sleep(350);
+    setStep(3, true); await sleep(200);
+
+    document.getElementById('loading').classList.remove('show');
+    renderResults(parsed);
+    lastResult = parsed;
+
+  } catch(err) {
+    document.getElementById('loading').classList.remove('show');
+    showErr('Error: ' + err.message);
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return n.toString();
+}
+
+function renderResults(d) {
+  // Winner banner
+  document.getElementById('winner-title').textContent = '🏆 Top performer: ' + (d.winner?.name || '—');
+  document.getElementById('winner-sub').textContent = d.winner?.reason || '';
+
+  // Channel cards
+  const cards = document.getElementById('ch-cards');
+  cards.innerHTML = '';
+  const rankClass = ['rank-1','rank-2','rank-3','rank-4'];
+  const rankEmoji = ['🥇','🥈','🥉','4'];
+  (d.channels||[]).forEach((ch, i) => {
+    const isTop = i === 0;
+    cards.innerHTML += `
+    <div class="ch-card ${isTop ? 'top-card' : ''}">
+      <div class="rank-badge ${rankClass[i]||'rank-4'}">${rankEmoji[i]||i+1}</div>
+      <div class="ch-card-name">${ch.name}</div>
+      <div class="ch-stat">
+        <div class="ch-stat-lbl">YouTube views</div>
+        <div class="ch-stat-val">${ch.yt_total}</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat-lbl">Instagram views</div>
+        <div class="ch-stat-val">${ch.ig_total}</div>
+      </div>
+      <div class="ch-stat">
+        <div class="ch-stat-lbl">Growth score</div>
+        <div class="ch-stat-val" style="color:${isTop?'var(--green)':'var(--blue)'}">${ch.growth_score}/100</div>
+        <div class="ch-stat-sub">✅ ${ch.highlight}</div>
+        <div class="ch-stat-sub" style="color:var(--red-text)">⚠️ ${ch.weakness}</div>
+      </div>
+    </div>`;
+  });
+
+  // YT bars
+  const ytMax = Math.max(...(d.channels||[]).map(c => c.yt_raw||0));
+  const igMax = Math.max(...(d.channels||[]).map(c => c.ig_raw||0));
+  renderBars('yt-bars', d.channels, 'yt_raw', ytMax);
+  renderBars('ig-bars', d.channels, 'ig_raw', igMax);
+
+  // Narrative
+  document.getElementById('narrative-text').textContent = d.narrative || '';
+
+  // Recs
+  const ul = document.getElementById('recs-list');
+  ul.innerHTML = '';
+  (d.recommendations||[]).forEach(r => {
+    const pc = r.priority==='high'?'r-high':r.priority==='medium'?'r-med':'r-low';
+    const tc = r.priority==='high'?'ptag-high':r.priority==='medium'?'ptag-med':'ptag-low';
+    ul.innerHTML += `<li class="rec">
+      <div class="rdot ${pc}"></div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px">${r.channel} · ${r.platform}</div>
+        ${r.action}
+      </div>
+      <span class="ptag ${tc}">${r.priority}</span>
+    </li>`;
+  });
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('run-btn').disabled = false;
+}
+
+function renderBars(containerId, channels, key, maxVal) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  (channels||[]).forEach((ch, i) => {
+    const val = ch[key] || 0;
+    const pct = maxVal > 0 ? Math.round((val / maxVal) * 100) : 0;
+    el.innerHTML += `<div class="growth-row">
+      <div class="growth-name">${ch.name}</div>
+      <div class="growth-bar-wrap"><div class="growth-bar ${i===0?'top':''}" style="width:${pct}%"></div></div>
+      <div class="growth-val">${fmt(val)}</div>
+    </div>`;
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function resetAll() {
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').classList.remove('show');
+  document.getElementById('run-btn').disabled = false;
+  hideErr();
+}
+
+function copyResults() {
+  if (!lastResult) return;
+  let text = `G2V CHANNEL GROWTH REPORT\n${'─'.repeat(40)}\n\n`;
+  text += `🏆 TOP PERFORMER: ${lastResult.winner?.name}\n${lastResult.winner?.reason}\n\n`;
+  text += `CHANNEL RANKINGS\n`;
+  (lastResult.channels||[]).forEach((c,i) => {
+    text += `${i+1}. ${c.name} — YT: ${c.yt_total} | IG: ${c.ig_total} | Score: ${c.growth_score}/100\n`;
+  });
+  text += `\nANALYSIS\n${lastResult.narrative}\n\nRECOMMENDATIONS\n`;
+  (lastResult.recommendations||[]).forEach((r,i) => {
+    text += `${i+1}. [${r.priority.toUpperCase()}] ${r.channel} (${r.platform}): ${r.action}\n`;
+  });
+  navigator.clipboard.writeText(text).then(() => alert('✅ Report copied to clipboard!'));
+}
+
+function showErr(msg) { const b=document.getElementById('err-box'); b.textContent=msg; b.classList.add('show'); }
+function hideErr() { document.getElementById('err-box').classList.remove('show'); }
+</script>
+</body>
+</html>
