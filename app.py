@@ -140,6 +140,8 @@ header[data-testid="stHeader"] { background: transparent; }
 .metric-card.green .m-value { color: #81c784; }
 .metric-card.amber { border-color: rgba(255,183,77,0.35); }
 .metric-card.amber .m-value { color: #ffb74d; }
+.metric-card.purple { border-color: rgba(186,104,200,0.35); }
+.metric-card.purple .m-value { color: #ce93d8; }
 
 /* Channel tag chips */
 .ch-chip {
@@ -152,11 +154,22 @@ header[data-testid="stHeader"] { background: transparent; }
     border-radius: 20px;
     margin: 2px 4px 2px 0;
 }
+.type-chip {
+    display: inline-block;
+    background: rgba(66,165,245,0.12);
+    border: 1px solid rgba(66,165,245,0.3);
+    color: #90caf9;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin: 2px 4px 2px 0;
+}
 
 /* Streamlit overrides */
 div[data-testid="stTextInput"] > label,
 div[data-testid="stDateInput"] > label,
 div[data-testid="stRadio"] > label,
+div[data-testid="stMultiSelect"] > label,
 div[data-testid="stTextArea"] > label {
     color: rgba(255,255,255,0.6) !important;
     font-size: 0.82rem !important;
@@ -181,6 +194,10 @@ div[data-testid="stTextArea"] textarea {
 div[data-testid="stRadio"] div[role="radiogroup"] label {
     color: rgba(255,255,255,0.75) !important;
     font-size: 0.9rem !important;
+}
+div[data-testid="stMultiSelect"] div[data-baseweb="select"] {
+    background: rgba(255,255,255,0.07) !important;
+    border-radius: 10px !important;
 }
 /* Primary button */
 div[data-testid="stButton"] > button[kind="primary"] {
@@ -233,7 +250,7 @@ div[data-testid="stSpinner"] p { color: rgba(255,255,255,0.6) !important; }
 st.markdown("""
 <div class="hero">
   <div class="hero-title">VidIQ <span>Nova</span></div>
-  <p class="hero-sub">Multi-channel intelligence · Date range filter · Shorts, Long Videos & Community Posts</p>
+  <p class="hero-sub">Multi-channel intelligence · Date range filter · Shorts, Long Videos, Live Videos & Community Posts</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -251,10 +268,20 @@ with st.sidebar:
     st.markdown(
         "<p style='color:rgba(255,255,255,0.4);font-size:0.78rem;line-height:1.6;'>"
         "VidIQ Nova — fetch YouTube video data across multiple channels, filter by content type & date range, "
-        "and export to Excel or CSV."
+        "and export to Excel or CSV. Each row is tagged with a Type column (Long Video, Short, Live Video, "
+        "Community Post) so you can tell content apart even when fetching several types together."
         "</p>",
         unsafe_allow_html=True
     )
+
+# ── Content type definitions ──────────────────────────────────────────────────
+CONTENT_TYPES = ["🎬 Long Video", "⚡ Short", "🔴 Live Video", "📢 Community Post"]
+TYPE_LABELS = {
+    "🎬 Long Video": "Long Video",
+    "⚡ Short": "Short",
+    "🔴 Live Video": "Live Video",
+    "📢 Community Post": "Community Post",
+}
 
 # ── Input Panel ───────────────────────────────────────────────────────────────
 col_left, col_right = st.columns([3, 2], gap="large")
@@ -267,11 +294,12 @@ with col_left:
     )
 
     st.markdown('<div class="section-head" style="margin-top:1rem;">📂 Content Type</div>', unsafe_allow_html=True)
-    content_type = st.radio(
+    selected_types = st.multiselect(
         "Content type",
-        options=["🎬 Long Videos", "⚡ Short Videos (Shorts)", "📢 Community Posts"],
-        horizontal=True,
-        label_visibility="collapsed"
+        options=CONTENT_TYPES,
+        default=CONTENT_TYPES,
+        label_visibility="collapsed",
+        help="Pick one or more. Every row in the result is tagged with a Type column so mixed fetches stay distinguishable."
     )
 
 with col_right:
@@ -345,32 +373,54 @@ def get_all_video_ids(yt, playlist_id):
         req = yt.playlistItems().list_next(req, resp)
     return ids
 
-def get_video_details(yt, video_ids, filter_type, channel_name, channel_id, start, end):
+def classify_video(v):
+    """
+    Returns 'short', 'long', or 'live' for a single video item.
+    A video counts as 'live' if it was ever broadcast live — either
+    currently live/upcoming, or a past stream (has liveStreamingDetails
+    with an actualStartTime). Otherwise it's classified by duration.
+    """
+    snippet = v.get('snippet', {})
+    live_status = snippet.get('liveBroadcastContent', 'none')
+    live_details = v.get('liveStreamingDetails')
+
+    if live_status in ('live', 'upcoming'):
+        return 'live'
+    if live_details and live_details.get('actualStartTime'):
+        return 'live'
+
+    secs = duration_to_seconds(v['contentDetails']['duration'])
+    return 'short' if secs <= 60 else 'long'
+
+def get_video_details(yt, video_ids, wanted_kinds, channel_name, channel_id, start, end):
+    """
+    wanted_kinds: set of any of {'short', 'long', 'live'} to include.
+    """
     rows = []
     for i in range(0, len(video_ids), 50):
         resp = yt.videos().list(
-            part='snippet,statistics,contentDetails',
+            part='snippet,statistics,contentDetails,liveStreamingDetails',
             id=','.join(video_ids[i:i+50])
         ).execute()
         for v in resp['items']:
             pub = v['snippet']['publishedAt']
             if not in_date_range(pub, start, end):
                 continue
-            raw_dur = v['contentDetails']['duration']
-            secs = duration_to_seconds(raw_dur)
-            if filter_type == 'short' and secs > 60:
+
+            kind = classify_video(v)
+            if kind not in wanted_kinds:
                 continue
-            if filter_type == 'long'  and secs <= 60:
-                continue
+
             vid_id = v['id']
             link = (
                 f"https://www.youtube.com/shorts/{vid_id}"
-                if filter_type == 'short'
+                if kind == 'short'
                 else f"https://www.youtube.com/watch?v={vid_id}"
             )
             rows.append({
                 'Date':         pd.to_datetime(pub).date(),
                 'Channel Name': channel_name,
+                'Type':         {'short': 'Short', 'long': 'Long Video', 'live': 'Live Video'}[kind],
                 'Title':        v['snippet']['title'],
                 'Link':         link,
                 'Views':        v['statistics'].get('viewCount',  0),
@@ -397,6 +447,7 @@ def get_community_posts(yt, channel_id, channel_name, start, end):
                 posts.append({
                     'Date':         pd.to_datetime(pub).date(),
                     'Channel Name': channel_name,
+                    'Type':         'Community Post',
                     'Title':        desc[:120] + ('…' if len(desc) > 120 else ''),
                     'Link':         f"https://www.youtube.com/channel/{channel_id}/community",
                     'Views':        '—',
@@ -429,12 +480,23 @@ with btn_col:
 if fetch:
     channel_ids = [c.strip() for c in channel_ids_raw.strip().splitlines() if c.strip()]
 
+    # Map selected pretty labels -> internal kind keys
+    label_to_kind = {
+        "🎬 Long Video": "long",
+        "⚡ Short": "short",
+        "🔴 Live Video": "live",
+    }
+    wanted_video_kinds = {label_to_kind[t] for t in selected_types if t in label_to_kind}
+    want_community = "📢 Community Post" in selected_types
+
     if not api_key:
         st.error("🔑 API Key missing — add it in the sidebar or Streamlit Secrets.")
     elif not channel_ids:
         st.error("📺 Please enter at least one Channel ID.")
     elif date_start > date_end:
         st.error("📅 Start date cannot be after end date.")
+    elif not selected_types:
+        st.error("📂 Please select at least one content type.")
     else:
         yt = build("youtube", "v3", developerKey=api_key)
         all_rows = []
@@ -451,19 +513,17 @@ if fetch:
                 continue
 
             channel_names.append(info['name'])
-            filter_key = (
-                'short' if content_type == "⚡ Short Videos (Shorts)"
-                else 'long' if content_type == "🎬 Long Videos"
-                else 'community'
-            )
 
-            if filter_key == 'community':
-                rows = get_community_posts(yt, info['channel_id'], info['name'], date_start, date_end)
-            else:
+            if wanted_video_kinds:
                 vids = get_all_video_ids(yt, info['playlist'])
-                rows = get_video_details(yt, vids, filter_key, info['name'], info['channel_id'], date_start, date_end)
+                rows = get_video_details(
+                    yt, vids, wanted_video_kinds, info['name'], info['channel_id'], date_start, date_end
+                )
+                all_rows.extend(rows)
 
-            all_rows.extend(rows)
+            if want_community:
+                rows = get_community_posts(yt, info['channel_id'], info['name'], date_start, date_end)
+                all_rows.extend(rows)
 
         progress.progress(1.0, text="Done!")
         progress.empty()
@@ -481,22 +541,27 @@ if fetch:
             df = df.sort_values('Date', ascending=False).reset_index(drop=True)
 
             # ── Summary Metrics ────────────────────────────────────────────
-            total_videos  = len(df)
-            total_views   = df['Views'].sum()   if 'Views'   in df.columns else 0
-            total_likes   = df['Likes'].sum()   if 'Likes'   in df.columns else 0
-            total_comments= df['Comments'].sum() if 'Comments' in df.columns else 0
+            total_videos   = len(df)
+            total_views    = df['Views'].sum()    if 'Views'    in df.columns else 0
+            total_likes    = df['Likes'].sum()    if 'Likes'    in df.columns else 0
+            total_comments = df['Comments'].sum() if 'Comments' in df.columns else 0
+
+            type_counts = df['Type'].value_counts().to_dict()
 
             st.markdown(f"""
             <div style="margin:1.5rem 0 0.5rem;">
               <div class="section-head">📊 Summary — {len(channel_names)} channel{'s' if len(channel_names)>1 else ''} · {date_start} → {date_end}</div>
-              <div style="margin-bottom:10px;">
+              <div style="margin-bottom:6px;">
                 {''.join(f'<span class="ch-chip">📺 {n}</span>' for n in channel_names)}
+              </div>
+              <div style="margin-bottom:10px;">
+                {''.join(f'<span class="type-chip">{t}: {c}</span>' for t, c in type_counts.items())}
               </div>
               <div class="metric-row">
                 <div class="metric-card amber">
-                  <div class="m-label">Videos Found</div>
+                  <div class="m-label">Items Found</div>
                   <div class="m-value">{total_videos:,}</div>
-                  <div class="m-sub">{content_type.split()[1]} content</div>
+                  <div class="m-sub">{len(type_counts)} content type{'s' if len(type_counts)>1 else ''}</div>
                 </div>
                 <div class="metric-card blue">
                   <div class="m-label">Total Views</div>
@@ -520,16 +585,13 @@ if fetch:
             # ── Data Table ─────────────────────────────────────────────────
             st.markdown('<div class="section-head">📋 Video Data</div>', unsafe_allow_html=True)
 
-            display_df = df.copy()
-            # Make Link clickable in display
-            display_df['Link'] = display_df['Link'].apply(lambda x: f'<a href="{x}" target="_blank">▶ Watch</a>')
-
             st.dataframe(
                 df,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
                     "Link": st.column_config.LinkColumn("Link", display_text="▶ Watch"),
+                    "Type": st.column_config.TextColumn("Type"),
                     "Views":    st.column_config.NumberColumn("Views",    format="%d"),
                     "Likes":    st.column_config.NumberColumn("Likes",    format="%d"),
                     "Comments": st.column_config.NumberColumn("Comments", format="%d"),
@@ -539,14 +601,10 @@ if fetch:
 
             # ── Downloads ──────────────────────────────────────────────────
             st.markdown('<div class="section-head" style="margin-top:1.5rem;">📥 Export</div>', unsafe_allow_html=True)
-            suffix = (
-                "shorts"     if content_type == "⚡ Short Videos (Shorts)"
-                else "long"  if content_type == "🎬 Long Videos"
-                else "community"
-            )
+            type_tag = "-".join(sorted({TYPE_LABELS[t].replace(" ", "") for t in selected_types}))
             date_tag = f"{date_start}_to_{date_end}"
             channels_tag = "_".join([n.replace(" ", "-") for n in channel_names])[:40]
-            fname = f"VidIQNova_{channels_tag}_{suffix}_{date_tag}"
+            fname = f"VidIQNova_{channels_tag}_{type_tag}_{date_tag}"
 
             dl1, dl2 = st.columns(2)
             with dl1:
